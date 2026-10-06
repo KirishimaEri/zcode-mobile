@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Zcode Mobile</string>
+    <string name="shortcut_reconnect">重连</string>
+    <string name="shortcut_reconnect_long">重连上次连接</string>
+</resources>

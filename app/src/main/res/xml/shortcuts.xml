@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="reconnect"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_reconnect"
+        android:shortcutLongLabel="@string/shortcut_reconnect_long">
+        <intent
+            android:action="com.zcodemobile.app.ACTION_RECONNECT"
+            android:targetPackage="com.zcodemobile.app"
+            android:targetClass="com.zcodemobile.app.MainActivity" />
+    </shortcut>
+</shortcuts>
