@@ -22,22 +22,19 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -55,11 +52,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -199,7 +199,7 @@ fun ScannerScreen(onBack: () -> Unit, onConnection: (ZcodeConnection) -> Unit) {
                 },
             )
 
-            ScanLineOverlay()
+            ViewFinderOverlay()
         } else {
             Column(
                 modifier = Modifier
@@ -288,7 +288,7 @@ fun ScannerScreen(onBack: () -> Unit, onConnection: (ZcodeConnection) -> Unit) {
 }
 
 @Composable
-private fun ScanLineOverlay() {
+private fun ViewFinderOverlay() {
     val transition = rememberInfiniteTransition(label = "scanLine")
     val fraction by transition.animateFloat(
         initialValue = 0f,
@@ -299,25 +299,57 @@ private fun ScanLineOverlay() {
         ),
         label = "scanLineFraction",
     )
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val y = (0.28f + 0.34f * fraction) * maxHeight.value
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset { IntOffset(0, (y * density).toInt()) }
-                .padding(horizontal = 44.dp)
-                .fillMaxWidth()
-                .height(2.dp)
-                .clip(RoundedCornerShape(1.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color(0xFFA99BF5),
-                            Color.Transparent,
-                        ),
-                    ),
-                ),
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val side = size.width * 0.72f
+        val left = (size.width - side) / 2f
+        val top = (size.height - side) / 2f - size.height * 0.03f
+        val rect = Rect(left, top, left + side, top + side)
+
+        drawIntoCanvas { canvas -> canvas.saveLayer(Rect(Offset.Zero, size), Paint()) }
+        drawRect(Color.Black.copy(alpha = 0.45f))
+        drawRect(
+            color = Color.Transparent,
+            topLeft = rect.topLeft,
+            size = rect.size,
+            blendMode = BlendMode.Clear,
+        )
+        drawIntoCanvas { it.restore() }
+
+        val len = side * 0.14f
+        val stroke = 4.dp.toPx()
+        val bracket: (Offset, Offset) -> Unit = { a, b ->
+            drawLine(Color.Black.copy(alpha = 0.35f), a, b, stroke + 3.dp.toPx())
+            drawLine(Color.White, a, b, stroke)
+        }
+        bracket(Offset(rect.left, rect.top + len), Offset(rect.left, rect.top))
+        bracket(Offset(rect.left, rect.top), Offset(rect.left + len, rect.top))
+        bracket(Offset(rect.right - len, rect.top), Offset(rect.right, rect.top))
+        bracket(Offset(rect.right, rect.top), Offset(rect.right, rect.top + len))
+        bracket(Offset(rect.right, rect.bottom - len), Offset(rect.right, rect.bottom))
+        bracket(Offset(rect.right, rect.bottom), Offset(rect.right - len, rect.bottom))
+        bracket(Offset(rect.left + len, rect.bottom), Offset(rect.left, rect.bottom))
+        bracket(Offset(rect.left, rect.bottom), Offset(rect.left, rect.bottom - len))
+
+        val lineY = rect.top + side * (0.06f + 0.88f * fraction)
+        drawLine(
+            brush = Brush.horizontalGradient(
+                listOf(Color.Transparent, Color(0xFF8B7CF0).copy(alpha = 0.55f), Color.Transparent),
+                startX = rect.left,
+                endX = rect.right,
+            ),
+            start = Offset(rect.left, lineY),
+            end = Offset(rect.right, lineY),
+            strokeWidth = 12.dp.toPx(),
+        )
+        drawLine(
+            brush = Brush.horizontalGradient(
+                listOf(Color.Transparent, Color(0xFF6C5CE7), Color.Transparent),
+                startX = rect.left,
+                endX = rect.right,
+            ),
+            start = Offset(rect.left, lineY),
+            end = Offset(rect.right, lineY),
+            strokeWidth = 3.dp.toPx(),
         )
     }
 }

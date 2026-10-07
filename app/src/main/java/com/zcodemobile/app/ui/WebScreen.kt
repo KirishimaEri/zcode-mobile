@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -52,7 +54,12 @@ import com.zcodemobile.app.ZcodeConnection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WebScreen(connection: ZcodeConnection, keepScreenOn: Boolean, onClose: () -> Unit) {
+fun WebScreen(
+    connection: ZcodeConnection,
+    keepScreenOn: Boolean,
+    onScan: () -> Unit,
+    onClose: () -> Unit,
+) {
     val context = LocalContext.current
     var pageTitle by remember { mutableStateOf(QRUrlParser.displayName(connection)) }
     var webView by remember { mutableStateOf<WebView?>(null) }
@@ -60,6 +67,7 @@ fun WebScreen(connection: ZcodeConnection, keepScreenOn: Boolean, onClose: () ->
     var progress by remember { mutableIntStateOf(100) }
     var isRefreshing by remember { mutableStateOf(false) }
     var pageError by remember { mutableStateOf<String?>(null) }
+    var pairingInvalid by remember { mutableStateOf(false) }
 
     if (keepScreenOn) {
         DisposableEffect(Unit) {
@@ -166,6 +174,18 @@ fun WebScreen(connection: ZcodeConnection, keepScreenOn: Boolean, onClose: () ->
                                     view.title?.takeIf { it.isNotBlank() }?.let { pageTitle = it }
                                     isRefreshing = false
                                     progress = 100
+                                    // 官方页配对失效时不会改 URL，只能查页面文本
+                                    fun scheduleInvalidCheck(delay: Long) {
+                                        view.postDelayed({
+                                            runCatching {
+                                                view.evaluateJavascript(INVALID_CHECK_JS) { result ->
+                                                    if (result == "\"1\"") pairingInvalid = true
+                                                }
+                                            }
+                                        }, delay)
+                                    }
+                                    scheduleInvalidCheck(2500)
+                                    scheduleInvalidCheck(6000)
                                 }
                             }
                             webChromeClient = object : WebChromeClient() {
@@ -236,7 +256,33 @@ fun WebScreen(connection: ZcodeConnection, keepScreenOn: Boolean, onClose: () ->
     BackHandler(enabled = !canGoBack) {
         onClose()
     }
+
+    if (pairingInvalid) {
+        AlertDialog(
+            onDismissRequest = { pairingInvalid = false },
+            title = { Text("配对已失效") },
+            text = {
+                Text(
+                    "桌面端刷新过二维码，或远程控制已停止。请重新扫码建立连接；" +
+                        "也可以留在本页查看历史内容。",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pairingInvalid = false
+                    onScan()
+                }) { Text("重新扫码") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pairingInvalid = false }) { Text("留在本页") }
+            },
+        )
+    }
 }
+
+private const val INVALID_CHECK_JS =
+    "(function(){try{var t=document.body?document.body.innerText:'';" +
+        "return (t.indexOf('Mobile Connection Invalid')>=0||t.indexOf('AUTH_FAILED')>=0)?'1':'0';}catch(e){return '0';}})()"
 
 @Composable
 private fun ErrorOverlay(message: String, url: String, onRetry: () -> Unit) {

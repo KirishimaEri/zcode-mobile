@@ -171,6 +171,7 @@ private fun ZcodeMobileApp(store: ConnectionStore, settings: AppSettings, reconn
             is Screen.Web -> WebScreen(
                 connection = s.connection,
                 keepScreenOn = settings.keepScreenOn,
+                onScan = { screen = Screen.Scanner },
                 onClose = { screen = Screen.Home },
             )
         }
