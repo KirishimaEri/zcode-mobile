@@ -48,21 +48,15 @@
 
 ## 📱 界面预览
 
-<div align="center">
-  <img src="assets/demo.gif" alt="相册导入二维码并打开远程控制页" width="270">
-  <br>
-  <sub>首屏 → 相册导入二维码 → 打开远程控制页</sub>
-</div>
-
 | 首页（亮色） | 首页（暗色） |
 |:---:|:---:|
 | ![亮色首页](assets/screenshot-home-light.png) | ![暗色首页](assets/screenshot-home-dark.png) |
 
-| 扫码取景框 | 连接页与失效提示 | 连接中通知 |
-|:---:|:---:|:---:|
-| ![扫码](assets/screenshot-scanner.png) | ![连接页](assets/screenshot-connect.png) | ![通知](assets/screenshot-notification.png) |
+| 连接页与失效提示 | 连接中通知 |
+|:---:|:---:|
+| ![连接页](assets/screenshot-connect.png) | ![通知](assets/screenshot-notification.png) |
 
-*取景框内为模拟器虚拟相机画面。连接页截图使用已失效的演示配对，用于展示配对失效时的引导提示。*
+*连接页截图使用已失效的演示配对，用于展示配对失效时的引导提示。*
 
 ## ⚙️ 工作原理
 
