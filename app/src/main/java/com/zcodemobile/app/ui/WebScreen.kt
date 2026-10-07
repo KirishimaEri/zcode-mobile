@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -131,6 +133,8 @@ fun WebScreen(
                             settings.loadWithOverviewMode = true
                             settings.useWideViewPort = true
                             settings.setSupportMultipleWindows(true)
+                            // 官方页为深色，先铺同色底避免加载瞬间闪黑
+                            setBackgroundColor(0xFF151718.toInt())
                             ViewCompat.setNestedScrollingEnabled(this, true)
                             webViewClient = object : WebViewClient() {
                                 override fun shouldOverrideUrlLoading(
@@ -235,6 +239,23 @@ fun WebScreen(
                         it.destroy()
                     },
                 )
+
+                if (progress < 100 && pageError == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = Color(0xFFA99BF5))
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                "正在打开远程控制页…",
+                                color = Color.White.copy(alpha = 0.75f),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
 
                 if (pageError != null) {
                     ErrorOverlay(

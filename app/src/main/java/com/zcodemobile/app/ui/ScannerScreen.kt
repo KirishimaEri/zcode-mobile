@@ -59,10 +59,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
@@ -105,6 +108,20 @@ fun ScannerScreen(onBack: () -> Unit, onConnection: (ZcodeConnection) -> Unit) {
     val scope = rememberCoroutineScope()
 
     androidx.activity.compose.BackHandler(onBack = onBack)
+
+    // 本页背景恒为深色，状态栏图标需切成浅色
+    val view = LocalView.current
+    val lightChrome = MaterialTheme.colorScheme.background.luminance() >= 0.5f
+    DisposableEffect(Unit) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowInsetsControllerCompat(it, view) }
+        controller?.isAppearanceLightStatusBars = false
+        controller?.isAppearanceLightNavigationBars = false
+        onDispose {
+            controller?.isAppearanceLightStatusBars = lightChrome
+            controller?.isAppearanceLightNavigationBars = lightChrome
+        }
+    }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -243,6 +260,30 @@ fun ScannerScreen(onBack: () -> Unit, onConnection: (ZcodeConnection) -> Unit) {
                 }
             }
         }
+
+        // 顶/底渐变蒙层：相机画面偏亮时保证控件与提示可读
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(150.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Black.copy(alpha = 0.65f), Color.Transparent),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(170.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
+                    ),
+                ),
+        )
 
         Row(
             modifier = Modifier

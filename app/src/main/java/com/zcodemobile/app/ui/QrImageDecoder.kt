@@ -55,11 +55,11 @@ object QrImageDecoder {
         0
     }
 
+    // 相册返回的 URI 只读一次：反复打开输入流在部分 provider 上会被拒
     private fun decodeScaled(context: Context, uri: Uri, maxDim: Int): Bitmap? {
+        val bytes = readBytes(context, uri, maxBytes = 32L * 1024 * 1024) ?: return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, bounds)
-        } ?: return null
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
         while (bounds.outWidth / (sample * 2) >= maxDim || bounds.outHeight / (sample * 2) >= maxDim) {
@@ -67,12 +67,28 @@ object QrImageDecoder {
         }
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         return try {
-            context.contentResolver.openInputStream(uri)?.use {
-                BitmapFactory.decodeStream(it, null, options)
-            }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
         } catch (_: OutOfMemoryError) {
             null
         }
+    }
+
+    private fun readBytes(context: Context, uri: Uri, maxBytes: Long): ByteArray? = try {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            val buffer = java.io.ByteArrayOutputStream()
+            val chunk = ByteArray(64 * 1024)
+            var total = 0L
+            while (true) {
+                val read = stream.read(chunk)
+                if (read <= 0) break
+                total += read
+                if (total > maxBytes) return null
+                buffer.write(chunk, 0, read)
+            }
+            buffer.toByteArray()
+        }
+    } catch (_: Exception) {
+        null
     }
 }
 
