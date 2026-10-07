@@ -74,7 +74,7 @@ https://zcode.z.ai/remote/v4?sid=<设备ID>&hash=<口令哈希>&t=<时间戳>&mi
 
 ### 方式一：直接安装 APK
 
-1. 下载 [ZcodeMobile-v1.1.0.apk](https://github.com/KirishimaEri/zcode-mobile/releases/download/v1.1.0/ZcodeMobile-v1.1.0.apk)（约 30 MB，需 Android 8.0+）；
+1. 下载 [ZcodeMobile-v1.2.0.apk](https://github.com/KirishimaEri/zcode-mobile/releases/download/v1.2.0/ZcodeMobile-v1.2.0.apk)（约 24 MB，需 Android 8.0+）；
 2. 传到手机安装，允许「安装未知来源应用」；
 3. 桌面端 ZCode 打开左下角「移动端远程控制」弹窗 → App 点「扫码连接」对准二维码。
 
