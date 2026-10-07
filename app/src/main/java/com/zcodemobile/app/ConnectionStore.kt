@@ -107,45 +107,45 @@ class ConnectionStore(context: Context) {
     suspend fun setKeepScreenOn(value: Boolean) = dataStore.edit { it[KEY_KEEP_SCREEN_ON] = value }
     suspend fun setThemeMode(value: Int) = dataStore.edit { it[KEY_THEME_MODE] = value }
 
-    private fun decodeConnections(json: String?): List<SavedConnection> {
-        if (json.isNullOrBlank()) return emptyList()
-        return runCatching {
-            val arr = JSONArray(json)
-            (0 until arr.length()).mapNotNull { i ->
-                val o = arr.optJSONObject(i) ?: return@mapNotNull null
-                val url = o.optString("url")
-                if (url.isBlank()) return@mapNotNull null
-                SavedConnection(
-                    id = o.optString("id"),
-                    url = url,
-                    host = o.optString("host"),
-                    name = o.optString("name").ifBlank { o.optString("host") },
-                    lastUsed = o.optLong("lastUsed"),
-                    favorite = o.optBoolean("favorite"),
-                )
-            }
-        }.getOrDefault(emptyList())
-    }
-
-    private fun encodeConnections(list: List<SavedConnection>): String {
-        val arr = JSONArray()
-        list.forEach { c ->
-            arr.put(JSONObject().apply {
-                put("id", c.id)
-                put("url", c.url)
-                put("host", c.host)
-                put("name", c.name)
-                put("lastUsed", c.lastUsed)
-                put("favorite", c.favorite)
-            })
-        }
-        return arr.toString()
-    }
-
     companion object {
         private val KEY_CONNECTIONS = stringPreferencesKey("connections")
         private val KEY_AUTO_RECONNECT = booleanPreferencesKey("auto_reconnect")
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         private val KEY_THEME_MODE = intPreferencesKey("theme_mode")
     }
+}
+
+internal fun decodeConnections(json: String?): List<SavedConnection> {
+    if (json.isNullOrBlank()) return emptyList()
+    return runCatching {
+        val arr = JSONArray(json)
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            val url = o.optString("url")
+            if (url.isBlank()) return@mapNotNull null
+            SavedConnection(
+                id = o.optString("id"),
+                url = url,
+                host = o.optString("host"),
+                name = o.optString("name").ifBlank { o.optString("host") },
+                lastUsed = o.optLong("lastUsed"),
+                favorite = o.optBoolean("favorite"),
+            )
+        }
+    }.getOrDefault(emptyList())
+}
+
+internal fun encodeConnections(list: List<SavedConnection>): String {
+    val arr = JSONArray()
+    list.forEach { c ->
+        arr.put(JSONObject().apply {
+            put("id", c.id)
+            put("url", c.url)
+            put("host", c.host)
+            put("name", c.name)
+            put("lastUsed", c.lastUsed)
+            put("favorite", c.favorite)
+        })
+    }
+    return arr.toString()
 }

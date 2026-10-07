@@ -39,7 +39,8 @@
 ## 🌟 亮点
 
 - 📷 **三种连接方式** — 相机扫码（ML Kit 实时识别）、**相册导入二维码**（截图桌面端二维码即可，无需第二台手机）、粘贴连接地址。
-- 🔁 **一次配对，长期直连** — 连接历史按最近使用排序，启动时自动重连上次连接，日常使用零扫码。
+- 📤 **系统分享接入** — 在任何应用里把连接地址"分享给 Zcode Mobile"即可直接建立连接，无需打开 App 粘贴。
+- 🔁 **一次配对，长期直连** — 连接历史按最近使用排序，启动时自动重连上次连接，日常使用零扫码；通知栏常驻连接状态，可一键断开。
 - 📱 **官方同源体验** — 全屏 WebView 打开官方云端控制页，官方页面怎么升级，App 就跟着升级，不需要更新客户端。
 - 🌗 **亮 / 暗 / 跟随系统** 三套主题，连接时可选屏幕常亮。
 - 🔒 **本地与私密** — 无账号、无统计、无第三方后端；配对 URL（等同桌面端钥匙）只存应用私有目录。
@@ -74,7 +75,7 @@ https://zcode.z.ai/remote/v4?sid=<设备ID>&hash=<口令哈希>&t=<时间戳>&mi
 
 ### 方式一：直接安装 APK
 
-1. 下载 [ZcodeMobile-v1.2.0.apk](https://github.com/KirishimaEri/zcode-mobile/releases/download/v1.2.0/ZcodeMobile-v1.2.0.apk)（约 24 MB，需 Android 8.0+）；
+1. 下载 [ZcodeMobile-v1.3.0.apk](https://github.com/KirishimaEri/zcode-mobile/releases/download/v1.3.0/ZcodeMobile-v1.3.0.apk)（约 24 MB，需 Android 8.0+）；
 2. 传到手机安装，允许「安装未知来源应用」；
 3. 桌面端 ZCode 打开左下角「移动端远程控制」弹窗 → App 点「扫码连接」对准二维码。
 

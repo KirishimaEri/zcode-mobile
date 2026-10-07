@@ -21,6 +21,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +54,7 @@ sealed interface Screen {
 }
 
 const val ACTION_RECONNECT = "com.zcodemobile.app.ACTION_RECONNECT"
+const val ACTION_DISCONNECT = "com.zcodemobile.app.ACTION_DISCONNECT"
 
 // Activity 重建时恢复当前页面
 private val ScreenSaver = listSaver<Screen, String>(
@@ -76,15 +81,26 @@ class MainActivity : ComponentActivity() {
 
     private val store by lazy { ConnectionStore(this) }
     private val reconnectRequests = mutableIntStateOf(0)
+    private val disconnectRequests = mutableIntStateOf(0)
+
+    // 分享文本带不走 Compose 状态，经由此桥接进重组
+    private val shareTextBridge = mutableStateOf<String?>(null)
+    private var pendingShareText: String?
+        get() = shareTextBridge.value
+        set(value) {
+            shareTextBridge.value = value
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (intent?.action == ACTION_RECONNECT) reconnectRequests.intValue = 1
+        if (intent?.action == ACTION_DISCONNECT) disconnectRequests.intValue = 1
+        pendingShareText = extractShareText(intent)
         setContent {
             val settings by store.settings.collectAsState(initial = AppSettings())
             ZcodeTheme(settings.themeMode) {
-                ZcodeMobileApp(store, settings, reconnectRequests.intValue)
+                ZcodeMobileApp(store, settings, reconnectRequests.intValue, disconnectRequests.intValue, shareTextBridge.value)
             }
         }
     }
@@ -92,17 +108,35 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == ACTION_RECONNECT) reconnectRequests.intValue++
+        if (intent.action == ACTION_DISCONNECT) disconnectRequests.intValue++
+        val shared = extractShareText(intent)
+        if (shared != null) pendingShareText = shared
+    }
+
+    private fun extractShareText(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_SEND) return null
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
+        return text.ifEmpty { null }
     }
 }
 
 @Composable
-private fun ZcodeMobileApp(store: ConnectionStore, settings: AppSettings, reconnectRequests: Int) {
+private fun ZcodeMobileApp(
+    store: ConnectionStore,
+    settings: AppSettings,
+    reconnectRequests: Int,
+    disconnectRequests: Int,
+    shareText: String? = null,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val connections by store.connections.collectAsState(initial = emptyList())
     var screen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.Home) }
     var autoReconnectDone by remember { mutableStateOf(false) }
     var handledReconnects by remember { mutableIntStateOf(0) }
+    var handledDisconnects by remember { mutableIntStateOf(0) }
+    var invalidShareReason by remember { mutableStateOf<String?>(null) }
+    val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(connections, settings.autoReconnect) {
         if (!autoReconnectDone && settings.autoReconnect) {
@@ -124,7 +158,38 @@ private fun ZcodeMobileApp(store: ConnectionStore, settings: AppSettings, reconn
         }
     }
 
+    LaunchedEffect(disconnectRequests) {
+        if (disconnectRequests > handledDisconnects) {
+            handledDisconnects = disconnectRequests
+            screen = Screen.Home
+        }
+    }
+
+    LaunchedEffect(shareText) {
+        if (shareText != null) {
+            when (val result = QRUrlParser.parse(shareText, strict = true)) {
+                is ParseResult.Ok -> {
+                    store.upsert(result.connection)
+                    screen = Screen.Web(result.connection)
+                }
+                is ParseResult.Invalid -> invalidShareReason = result.reason
+            }
+        }
+    }
+
     val currentConnection = (screen as? Screen.Web)?.connection
+
+    invalidShareReason?.let { reason ->
+        LaunchedEffect(reason) { invalidShareReason = null }
+        AlertDialog(
+            onDismissRequest = { invalidShareReason = null },
+            title = { Text("无法识别分享的连接") },
+            text = { Text(reason) },
+            confirmButton = {
+                TextButton(onClick = { invalidShareReason = null }) { Text("知道了") }
+            },
+        )
+    }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -196,12 +261,18 @@ private fun postConnectionNotification(context: Context, connection: ZcodeConnec
         context, 0, intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
+    val disconnect = PendingIntent.getActivity(
+        context, 1,
+        Intent(context, MainActivity::class.java).setAction(ACTION_DISCONNECT),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
     val notification = Notification.Builder(context, NOTIFICATION_CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle("已连接 ${QRUrlParser.displayName(connection)}")
         .setContentText("点按返回远程控制页面")
         .setOngoing(true)
         .setContentIntent(pending)
+        .addAction(Notification.Action.Builder(null, "断开", disconnect).build())
         .build()
     nm.notify(NOTIFICATION_ID, notification)
 }
